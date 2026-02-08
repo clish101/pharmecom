@@ -1,0 +1,8 @@
+Django>=3.2
+djangorestframework>=3.12
+dj-rest-auth>=2.2
+django-allauth>=0.50
+pytz
+sqlparse
+django-cors-headers>=3.13.0
+requests>=2.0
