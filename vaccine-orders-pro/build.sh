@@ -3,7 +3,8 @@ set -e
 
 # Build the React frontend first
 echo "Building React frontend..."
-npm install
+rm -rf node_modules package-lock.json
+npm install --production=false
 npm run build
 echo "Frontend built successfully"
 
