@@ -9,14 +9,6 @@ __pycache__/
 # C extensions
 *.so
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
 lib/
 lib64/
 parts/
@@ -256,3 +248,5 @@ __pycache__/
 # Builds
 dist/
 build/
+# But do track frontend source code libraries
+!vaccine-orders-pro/src/lib/

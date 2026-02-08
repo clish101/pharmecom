@@ -8,10 +8,7 @@ cd "$SCRIPT_DIR"
 echo "Building React frontend..."
 echo "Working directory: $(pwd)"
 
-# Clean and reinstall dependencies
-rm -rf node_modules package-lock.json
-
-# Install dependencies
+# Install dependencies (don't clean, let npm handle caching)
 npm install
 
 # Build the frontend
