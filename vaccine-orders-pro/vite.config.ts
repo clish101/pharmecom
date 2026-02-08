@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  const root = __dirname;
+  const root = process.cwd();
   
   return {
     root: root,
@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
     resolve: {
       alias: {
-        "@": path.resolve(root, "./src"),
+        "@": path.resolve(root, "src"),
       },
       extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
     },
