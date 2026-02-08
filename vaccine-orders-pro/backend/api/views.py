@@ -336,7 +336,7 @@ import os
 import mimetypes
 
 class FrontendCatchallView(View):
-    """Serve the React frontend's index.html for SPA routing, and static files."""
+    """Serve the React frontend's index.html for SPA routing, and static assets."""
     
     def get(self, request):
         path = request.path
@@ -345,28 +345,35 @@ class FrontendCatchallView(View):
         if path.startswith('/api/') or path.startswith('/admin/'):
             raise Http404()
         
-        # Try to serve static files first
-        # Remove leading slash for file lookup
-        file_path = path.lstrip('/')
-        
-        # Check in staticfiles directory
-        full_path = os.path.join(BASE_DIR, 'staticfiles', file_path)
-        
-        # Fallback to dist during development
-        if not os.path.exists(full_path):
-            full_path = os.path.join(BASE_DIR.parent, 'dist', file_path)
-        
-        # If file exists, serve it with correct MIME type
-        if os.path.exists(full_path) and os.path.isfile(full_path):
-            mime_type, _ = mimetypes.guess_type(full_path)
-            if mime_type is None:
-                mime_type = 'application/octet-stream'
+        # For /assets/ path, try to serve the actual file
+        if path.startswith('/assets/'):
+            # Remove leading slash for file lookup
+            file_path = path.lstrip('/')
             
-            with open(full_path, 'rb') as f:
-                response = HttpResponse(f.read(), content_type=mime_type)
-            return response
+            # Check in staticfiles directory (where Vite assets are copied)
+            full_path = os.path.join(BASE_DIR, 'staticfiles', file_path)
+            
+            # Fallback to dist during development
+            if not os.path.exists(full_path):
+                full_path = os.path.join(BASE_DIR.parent, 'dist', file_path)
+            
+            # If file exists, serve it with correct MIME type
+            if os.path.exists(full_path) and os.path.isfile(full_path):
+                mime_type, _ = mimetypes.guess_type(full_path)
+                if mime_type is None:
+                    mime_type = 'application/octet-stream'
+                
+                try:
+                    with open(full_path, 'rb') as f:
+                        response = HttpResponse(f.read(), content_type=mime_type)
+                        response['Cache-Control'] = 'public, max-age=31536000'  # Cache forever since filename has hash
+                    return response
+                except Exception:
+                    raise Http404(f"File not found: {full_path}")
+            
+            raise Http404(f"Asset file not found: {full_path}")
         
-        # Otherwise, serve index.html for React routing
+        # For all other routes, serve index.html for React routing
         index_path = os.path.join(BASE_DIR, 'staticfiles/index.html')
         
         # Fallback to dist folder during development
@@ -374,8 +381,11 @@ class FrontendCatchallView(View):
             index_path = os.path.join(BASE_DIR.parent, 'dist/index.html')
         
         if os.path.exists(index_path):
-            with open(index_path, 'rb') as f:
-                return HttpResponse(f.read(), content_type='text/html')
+            try:
+                with open(index_path, 'rb') as f:
+                    return HttpResponse(f.read(), content_type='text/html')
+            except Exception:
+                return JsonResponse({'error': f'Could not read {index_path}'}, status=500)
         
         # If no index.html found, return a 404
-        return JsonResponse({'error': 'Frontend not found'}, status=404)
+        return JsonResponse({'error': f'Frontend not found at {index_path}'}, status=404)
