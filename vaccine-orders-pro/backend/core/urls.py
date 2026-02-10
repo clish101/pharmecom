@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from rest_framework.schemas import get_schema_view
 from django.conf import settings
 from django.conf.urls.static import static
@@ -13,8 +13,12 @@ urlpatterns = [
     path('api/schema/', schema_view, name='api-schema'),
     # Catchall route - must be last to serve React frontend
     # WhiteNoise middleware will serve static files (/static/assets/..., /static/*)
-    path('', FrontendCatchallView.as_view()),
-    path('<path:path>', FrontendCatchallView.as_view()),
+    #path('', FrontendCatchallView.as_view()),
+    #path('<path:path>', FrontendCatchallView.as_view()),
+]
+
+urlpatterns += [
+    re_path(r'^(?!admin/|api/).*$', FrontendCatchallView.as_view()),
 ]
 
 if settings.DEBUG:
