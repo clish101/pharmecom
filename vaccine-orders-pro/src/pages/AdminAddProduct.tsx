@@ -81,6 +81,10 @@ export default function AdminAddProduct() {
 
     console.log('API_BASE:', API_BASE);
     const token = localStorage.getItem('authToken');
+    console.log('Token from localStorage:', token);
+    console.log('Token length:', token?.length);
+    console.log('Token has whitespace:', token !== token?.trim());
+    
     if (!token) {
       navigate('/');
       return;
@@ -122,6 +126,8 @@ export default function AdminAddProduct() {
 
     try {
       let res: Response;
+      // Trim token to remove any whitespace
+      const cleanToken = token.trim();
 
       if (imageFile) {
         // Use FormData for file upload
@@ -142,7 +148,7 @@ export default function AdminAddProduct() {
         res = await fetch(`${API_BASE}/products/`, {
           method: 'POST',
           headers: {
-            'Authorization': `Token ${token}`,
+            'Authorization': `Token ${cleanToken}`,
           },
           body: formData,
           credentials: 'include',
@@ -153,7 +159,7 @@ export default function AdminAddProduct() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Token ${token}`,
+            'Authorization': `Token ${cleanToken}`,
           },
             body: JSON.stringify({
             name: form.name,
@@ -188,7 +194,7 @@ export default function AdminAddProduct() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Token ${token}`,
+              'Authorization': `Token ${cleanToken}`,
             },
             body: JSON.stringify({
               product: product.id,
