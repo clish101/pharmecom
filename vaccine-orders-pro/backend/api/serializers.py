@@ -46,6 +46,7 @@ class ProductSerializer(serializers.ModelSerializer):
     total_stock = serializers.SerializerMethodField()
     total_units = serializers.SerializerMethodField()
     image = serializers.ImageField(required=False, allow_null=True, use_url=True)
+    image_alt = serializers.CharField(required=False, allow_blank=True)
     image_url = serializers.SerializerMethodField()
 
     class Meta:
