@@ -38,7 +38,7 @@ export default function AdminAddProduct() {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [batches, setBatches] = useState<DosePack[]>([]);
+  const [batches, setBatches] = useState<DosePack[]>([{ doses: 0, units_per_pack: 0 }]);
 
   const handleInputChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -429,7 +429,7 @@ export default function AdminAddProduct() {
                             <Input
                               id={`doses_${index}`}
                               type="number"
-                              value={batch.doses}
+                              value={batch.doses || ''}
                               onChange={(e) => updateBatch(index, 'doses', parseInt(e.target.value) || 0)}
                               min="1"
                               required
@@ -442,7 +442,7 @@ export default function AdminAddProduct() {
                             <Input
                               id={`units_per_pack_${index}`}
                               type="number"
-                              value={batch.units_per_pack}
+                              value={batch.units_per_pack || ''}
                               onChange={(e) => updateBatch(index, 'units_per_pack', parseInt(e.target.value) || 0)}
                               min="1"
                               required
