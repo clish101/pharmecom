@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Upload, X, Plus } from 'lucide-react';
+import { API_BASE } from '@/lib/api';
 
 interface DosePack {
   doses: number;
@@ -137,7 +138,7 @@ export default function AdminAddProduct() {
         // available_stock is derived from dose packs; do not send initial stock
         formData.append('image', imageFile);
 
-        res = await fetch('/api/products/', {
+        res = await fetch(`${API_BASE}/products/`, {
           method: 'POST',
           headers: {
             'Authorization': `Token ${token}`,
@@ -147,7 +148,7 @@ export default function AdminAddProduct() {
         });
       } else {
         // Use JSON for non-image requests
-        res = await fetch('/api/products/', {
+        res = await fetch(`${API_BASE}/products/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -180,7 +181,7 @@ export default function AdminAddProduct() {
       // Create dose packs if any
       if (batches.length > 0 && product.id) {
         for (const batch of batches) {
-          await fetch('/api/dosepacks/', {
+          await fetch(`${API_BASE}/dosepacks/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

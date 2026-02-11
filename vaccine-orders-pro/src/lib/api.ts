@@ -1,6 +1,7 @@
 // API client for communicating with Django backend
-const VITE_API_URL = import.meta.env.VITE_API_URL;
-export const API_BASE = VITE_API_URL || '/api';
+// Use the API URL defined in vite.config.ts via the define option, or fall back to /api
+declare const __API_URL__: string;
+export const API_BASE = (typeof __API_URL__ !== 'undefined' && __API_URL__) ? __API_URL__ : '/api';
 
 interface ApiError {
   detail?: string;
