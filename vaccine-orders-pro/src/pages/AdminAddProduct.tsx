@@ -79,6 +79,7 @@ export default function AdminAddProduct() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    console.log('API_BASE:', API_BASE);
     const token = localStorage.getItem('authToken');
     if (!token) {
       navigate('/');
@@ -173,7 +174,9 @@ export default function AdminAddProduct() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData?.detail || 'Failed to create product');
+        console.error('API Error Response:', { status: res.status, data: errorData });
+        const errorMessage = typeof errorData === 'string' ? errorData : (errorData?.detail || errorData?.error || 'Failed to create product');
+        throw new Error(errorMessage);
       }
 
       const product = await res.json();
