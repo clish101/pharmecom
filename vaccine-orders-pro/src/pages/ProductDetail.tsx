@@ -156,6 +156,34 @@ export default function ProductDetail() {
     }
   }, [product]);
 
+  // Update effective lead time when the user changes quantity or when product stock changes.
+  // If the requested quantity is greater than current available stock, force a 3-week lead time
+  // and prevent selecting an earlier delivery date by moving the selected date forward if needed.
+  useEffect(() => {
+    if (!product) return;
+
+    const totalUnits = product.dosePacks && product.dosePacks.length > 0
+      ? product.dosePacks.reduce((sum, dp) => sum + (dp.units_per_pack || 0), 0)
+      : 0;
+
+    // Base lead time: if no units, 3 weeks, otherwise product lead time or 3 days
+    let leadTime = totalUnits === 0 ? 21 : (product.leadTimeDays || 3);
+
+    const available = product.availableStock || 0;
+    const requested = quantity || 0;
+
+    if (requested > available) {
+      leadTime = 21; // force 3 weeks when requested > available
+    }
+
+    setEffectiveLeadTimeDays(leadTime);
+
+    const minDate = addDays(new Date(), leadTime);
+    if (deliveryDate && deliveryDate.getTime() < minDate.getTime()) {
+      setDeliveryDate(minDate);
+    }
+  }, [quantity, product]);
+
   if (loading) {
     return (
       <Layout>
@@ -439,9 +467,11 @@ export default function ProductDetail() {
               <div className="space-y-2">
                 <Label>Requested Delivery Date</Label>
                 <p className="text-xs text-muted-foreground">
-                  {effectiveLeadTimeDays === 21
-                    ? 'Lead time: 3 weeks (no units)'
-                    : `Lead time: ${effectiveLeadTimeDays} days`
+                  {quantity > (product.availableStock || 0)
+                    ? 'Lead time: 3 weeks (stock shortage)'
+                    : effectiveLeadTimeDays === 21
+                      ? 'Lead time: 3 weeks (no units)'
+                      : `Lead time: ${effectiveLeadTimeDays} days`
                   }
                 </p>
                 <Popover>
