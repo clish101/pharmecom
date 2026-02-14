@@ -8,12 +8,15 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from decimal import Decimal
 import uuid
+from pathlib import Path
 
 from .models import Product, Order, OrderItem, DosePack, UserProfile, Batch, InventoryLog, OrderStatusHistory
 from .serializers import ProductSerializer, OrderSerializer, UserSerializer, BatchSerializer, DosePackSerializer, InventoryLogSerializer
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.middleware.csrf import get_token
 from django.http import JsonResponse
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 @api_view(["GET"])
@@ -83,10 +86,10 @@ class ProductViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_permissions(self):
-        """Only allow GET for everyone, POST/PUT/DELETE for staff only"""
+        """Allow GET for everyone, POST/PUT/DELETE for authenticated users"""
         if self.action in ['list', 'retrieve']:
             return [permissions.AllowAny()]
-        return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
 
 class DosePackViewSet(viewsets.ModelViewSet):
     queryset = DosePack.objects.all()
@@ -94,10 +97,10 @@ class DosePackViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
-        """Only allow GET for everyone, POST/PUT/DELETE for staff only"""
+        """Allow GET for everyone, POST/PUT/DELETE for authenticated users"""
         if self.action in ['list', 'retrieve']:
             return [permissions.AllowAny()]
-        return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
 
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
@@ -324,3 +327,36 @@ class InventoryLogViewSet(viewsets.ReadOnlyModelViewSet):
         if product_id:
             queryset = queryset.filter(product_id=product_id)
         return queryset
+
+
+# Frontend catchall view
+from django.views.generic import View
+from django.http import HttpResponse, Http404, JsonResponse
+import os
+
+class FrontendCatchallView(View):
+    """Serve the React frontend's index.html for SPA routing."""
+    
+    def get(self, request, path=''):
+        """Handle GET requests. The 'path' parameter is captured from the URL pattern."""
+        
+        # Don't serve frontend for API or admin routes
+        if request.path.startswith('/api/') or request.path.startswith('/admin/'):
+            raise Http404()
+        
+        # For all other routes, serve index.html for React routing
+        index_path = os.path.join(BASE_DIR, 'staticfiles/index.html')
+        
+        # Fallback to dist folder during development
+        if not os.path.exists(index_path):
+            index_path = os.path.join(BASE_DIR.parent, 'dist/index.html')
+        
+        if os.path.exists(index_path):
+            try:
+                with open(index_path, 'rb') as f:
+                    return HttpResponse(f.read(), content_type='text/html')
+            except Exception as e:
+                return JsonResponse({'error': f'Could not read frontend: {str(e)}'}, status=500)
+        
+        # If no index.html found, return a 404
+        return JsonResponse({'error': f'Frontend not found at {index_path}'}, status=404)

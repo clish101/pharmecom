@@ -46,6 +46,7 @@ class ProductSerializer(serializers.ModelSerializer):
     total_stock = serializers.SerializerMethodField()
     total_units = serializers.SerializerMethodField()
     image = serializers.ImageField(required=False, allow_null=True, use_url=True)
+    image_alt = serializers.CharField(required=False, allow_blank=True)
     image_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -69,7 +70,14 @@ class ProductSerializer(serializers.ModelSerializer):
     
     def get_image_url(self, obj):
         """Return the appropriate image URL"""
-        return obj.get_image_url()
+        url = obj.get_image_url()
+        request = self.context.get('request') if hasattr(self, 'context') else None
+        try:
+            if request and url:
+                return request.build_absolute_uri(url)
+        except Exception:
+            pass
+        return url
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Upload, X, Plus } from 'lucide-react';
+import { API_BASE } from '@/lib/api';
 
 interface DosePack {
   doses: number;
@@ -38,7 +39,7 @@ export default function AdminAddProduct() {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [batches, setBatches] = useState<DosePack[]>([]);
+  const [batches, setBatches] = useState<DosePack[]>([{ doses: 0, units_per_pack: 0 }]);
 
   const handleInputChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -78,7 +79,12 @@ export default function AdminAddProduct() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    console.log('API_BASE:', API_BASE);
     const token = localStorage.getItem('authToken');
+    console.log('Token from localStorage:', token);
+    console.log('Token length:', token?.length);
+    console.log('Token has whitespace:', token !== token?.trim());
+    
     if (!token) {
       navigate('/');
       return;
@@ -120,6 +126,8 @@ export default function AdminAddProduct() {
 
     try {
       let res: Response;
+      // Trim token to remove any whitespace
+      const cleanToken = token.trim();
 
       if (imageFile) {
         // Use FormData for file upload
@@ -136,43 +144,71 @@ export default function AdminAddProduct() {
         formData.append('image_alt', form.image_alt);
         // available_stock is derived from dose packs; do not send initial stock
         formData.append('image', imageFile);
+        
+        console.log('Sending FormData with image');
 
-        res = await fetch('/api/products/', {
+        res = await fetch(`${API_BASE}/products/`, {
           method: 'POST',
           headers: {
-            'Authorization': `Token ${token}`,
+            'Authorization': `Token ${cleanToken}`,
           },
           body: formData,
           credentials: 'include',
         });
       } else {
         // Use JSON for non-image requests
-        res = await fetch('/api/products/', {
+        const payload = {
+          name: form.name,
+          brand: form.brand,
+          species: form.species,
+          product_type: form.product_type,
+          description: form.description,
+          manufacturer: form.manufacturer,
+          active_ingredients: form.active_ingredients,
+          storage_temp_range: form.storage_temp_range,
+          administration_notes: form.administration_notes,
+          image_alt: form.image_alt,
+        };
+        
+        console.log('Sending JSON payload:', payload);
+        
+        res = await fetch(`${API_BASE}/products/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Token ${token}`,
+            'Authorization': `Token ${cleanToken}`,
           },
-            body: JSON.stringify({
-            name: form.name,
-            brand: form.brand,
-            species: form.species,
-            product_type: form.product_type,
-            description: form.description,
-            manufacturer: form.manufacturer,
-            active_ingredients: form.active_ingredients,
-            storage_temp_range: form.storage_temp_range,
-            administration_notes: form.administration_notes,
-            image_alt: form.image_alt,
-              // available_stock omitted — computed from dose packs
-          }),
+            body: JSON.stringify(payload),
           credentials: 'include',
         });
       }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData?.detail || 'Failed to create product');
+        console.error('API Error Response:', { status: res.status, data: errorData });
+        console.log('Full error object:', JSON.stringify(errorData, null, 2));
+        
+        // Handle validation errors from DRF
+        let errorMessage = 'Failed to create product';
+        if (typeof errorData === 'object') {
+          // DRF returns validation errors as an object with field names as keys
+          const errors = Object.entries(errorData)
+            .filter(([key]) => key !== 'detail' && key !== 'error')
+            .map(([key, value]: [string, any]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join('; ');
+          
+          if (errors) {
+            errorMessage = errors;
+          } else if (errorData?.detail) {
+            errorMessage = errorData.detail;
+          } else if (errorData?.error) {
+            errorMessage = errorData.error;
+          }
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const product = await res.json();
@@ -180,11 +216,11 @@ export default function AdminAddProduct() {
       // Create dose packs if any
       if (batches.length > 0 && product.id) {
         for (const batch of batches) {
-          await fetch('/api/dosepacks/', {
+          await fetch(`${API_BASE}/dosepacks/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Token ${token}`,
+              'Authorization': `Token ${cleanToken}`,
             },
             body: JSON.stringify({
               product: product.id,
@@ -368,7 +404,7 @@ export default function AdminAddProduct() {
                         id="imageAlt"
                         value={form.image_alt}
                         onChange={(e) => handleInputChange('image_alt', e.target.value)}
-                        placeholder="Describe the image for accessibility"
+                        placeholder="Describe the image for accessibility (optional)"
                       />
                     </div>
                   </div>
@@ -429,23 +465,21 @@ export default function AdminAddProduct() {
                             <Input
                               id={`doses_${index}`}
                               type="number"
-                              value={batch.doses}
+                              value={batch.doses || ''}
                               onChange={(e) => updateBatch(index, 'doses', parseInt(e.target.value) || 0)}
-                              placeholder="e.g., 1000"
                               min="1"
                               required
                             />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor={`units_per_pack_${index}`} className="text-sm">
-                              Units Per Pack *
+                              Stock *
                             </Label>
                             <Input
                               id={`units_per_pack_${index}`}
                               type="number"
-                              value={batch.units_per_pack}
+                              value={batch.units_per_pack || ''}
                               onChange={(e) => updateBatch(index, 'units_per_pack', parseInt(e.target.value) || 0)}
-                              placeholder="e.g., 100"
                               min="1"
                               required
                             />
