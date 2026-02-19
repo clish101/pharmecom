@@ -15,14 +15,7 @@ npm install
 echo "Running Vite build..."
 npm run build
 
-echo "Frontend built successfully at $(pwd)/dist"
-
-# Move frontend dist to backend static directory
-echo "Copying frontend to backend staticfiles..."
-rm -rf backend/staticfiles
-mkdir -p backend/staticfiles
-cp -r dist/* backend/staticfiles/
-echo "Frontend copied successfully"
+echo "Frontend built successfully at $(pwd)/backend/staticfiles"
 
 # Setup Django backend
 echo "Setting up Django backend..."
